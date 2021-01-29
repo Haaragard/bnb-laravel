@@ -4,7 +4,7 @@
         <div v-else>
             <div class="row" v-for="row in rows" :key="`row-${row}`">
                 <div
-                    class="col mb-4"
+                    class="col mb-4 d-flex align-items-stretch"
                     v-for="(bookable, column) in bookablesInRow(row)"
                     :key="`row-${row}-col-${column}-bookable`"
                 >
@@ -54,17 +54,12 @@ export default {
     created() {
         this.loading = true;
 
-        setTimeout(() => {
-            this.bookables = [
-                { title: "Title 1", description: "Description 1" },
-                { title: "Title 2", description: "Description 2" },
-                { title: "Title 3", description: "Description 3" },
-                { title: "Title 4", description: "Description 4" },
-                { title: "Title 5", description: "Description 5" },
-            ];
-
-            this.loading = false;
-        }, 2500);
+        axios.get('/api/bookables')
+            .then(response => {
+                this.bookables = response.data.data;
+            }).catch(error => {
+                
+            }).finally(() => {this.loading = false;});
     },
 }
 </script>
