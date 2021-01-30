@@ -1,6 +1,10 @@
 <template>
     <div class="card-body">
-        <h6 class="text-uppercase text-secondary font-weight-bolder">Check Availability</h6>
+        <h6 class="text-uppercase text-secondary font-weight-bolder">
+            Check Availability
+            <span v-if="noAvailability" class="text-danger">(NOT AVAILABLE)</span>
+            <span v-if="hasAvailability" class="text-success">(AVAILABLE)</span>
+        </h6>
         <div class="form-row">
             <div class="form-group col-md-6">
                 <label for="from">From</label>
@@ -11,8 +15,15 @@
                     placeholder="Start date"
                     v-model="from"
                     @keyup.enter="check"
+                    :class="[{'is-invalid': this.errorFor('from')}]"
                 />
+                <div
+                    class="invalid-feedback"
+                    v-for="(error, index) in this.errorFor('from')"
+                    :key="`form-error-from-${index}`"
+                >{{ error }}</div>
             </div>
+
             <div class="form-group col-md-6">
                 <label for="to">To</label>
                 <input
@@ -22,11 +33,17 @@
                     placeholder="End date"
                     v-model="to"
                     @keyup.enter="check"
+                    :class="[{'is-invalid': this.errorFor('to')}]"
                 />
+                <div
+                    class="invalid-feedback"
+                    v-for="(error, index) in this.errorFor('to')"
+                    :key="`form-error-to-${index}`"
+                >{{ error }}</div>
             </div>
         </div>
 
-        <button class="btn btn-secondary btn-block" @click="check">Check!</button>
+        <button class="btn btn-secondary btn-block" @click="check" :disabled="this.loading">Check!</button>
     </div>
 </template>
 
@@ -37,20 +54,38 @@ export default {
             from: null,
             to: null,
             loading: false,
+            status: null,
+            errors: null,
         };
     },
     methods: {
         check() {
-            if (loading) return;
+            if (this.loading) return;
             this.loading = true;
 
-            // axios.get('')
-            //     .then(response => {
-
-            //     }).catch(error => {
-
-            //     }).finally(() => {this.loading = false;});
-            this.loading = false;
+            axios.get(`/api/bookables/${this.$route.params.id}/availability?from=${this.from}&to=${this.to}`)
+                .then(response => {
+                    this.status = response.status;
+                }).catch(error => {
+                    this.status = error.response.status;
+                    if (422 === error.response.status) {
+                        this.errors = error.response.data.errors;
+                    }
+                }).finally(() => { this.loading = false; });
+        },
+        errorFor(field) {
+            return this.hasErrors && this.errors[field] ? this.errors[field] : null;
+        }
+    },
+    computed: {
+        hasErrors() {
+            return 422 === this.status && this.errors !== null;
+        },
+        hasAvailability() {
+            return 200 === this.status;
+        },
+        noAvailability() {
+            return 404 === this.status;
         }
     }
 }
